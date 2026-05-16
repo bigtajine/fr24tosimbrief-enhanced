@@ -4012,6 +4012,12 @@ async function fetchFlight() {
         airline: data.airline?.short || data.airline?.name || '',
         airlineIcao: data.airline?.code?.icao || '',
         airlineIata: data.airline?.code?.iata || '',
+        airlineCountry: (
+          data.airline?.country?.code ||
+          data.airline?.country?.alpha2 ||
+          data.airline?.country?.alpha_2 ||
+          ''
+        ).toString().trim().toUpperCase(),
         callsign: data.identification?.callsign || parsed.callsign || '',
         flightNumber: data.identification?.number?.default || '',
         trail: data.trail || [],
@@ -4634,6 +4640,7 @@ function applyFinder() {
     airline: finderAirlineData?.name || '',
     airlineIcao: finderAirlineData?.icao || '',
     airlineIata: finderAirlineData?.iata || '',
+    airlineCountry: '',
     callsign: '',
     flightNumber: '',
     route: '',
@@ -5181,6 +5188,21 @@ function buildSimbriefCallsignParam(existingCallsign, airlineIcao, numericFltNum
   return '';
 }
 
+/** US-flag carriers → SimBrief imperial weights (lbs). ICAO codes used when FR24 omits country. */
+const US_AIRLINE_ICAO = new Set([
+  'AAL','UAL','DAL','SWA','ASA','JBU','NKS','FFT','HAL','AAY','SCX','MXY','VXP','JTL','SNY','SIL','BTQ','WWI',
+  'SKW','ENY','RPA','PDT','JIA','ASH','QXE','CPZ','GJS','UCA','AWI','KAP','EDV','LOF','ASQ',
+  'FDX','UPS','GTI','ATI','ABX','PAC','SWN','CKS','KII'
+]);
+
+function isUsAirCarrier(fd) {
+  if (!fd) return false;
+  const cc = String(fd.airlineCountry || '').trim().toUpperCase();
+  if (cc === 'US' || cc === 'USA') return true;
+  const icao = String(fd.airlineIcao || '').trim().toUpperCase();
+  return US_AIRLINE_ICAO.has(icao);
+}
+
 function generateOFP() {
   if (!flightData) {
     showStatus('genStatus', 'error', 'No flight data loaded');
@@ -5221,6 +5243,8 @@ function generateOFP() {
 
   const sbCallsign = buildSimbriefCallsignParam(flightData.callsign, flightData.airlineIcao, sbFlt);
   if (sbCallsign) params.set('callsign', sbCallsign);
+
+  if (isUsAirCarrier(flightData)) params.set('units', 'LBS');
 
   const altn = document.getElementById('altnAirport').value.trim().toUpperCase();
   if (altn) params.set('altn', altn);
