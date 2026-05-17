@@ -5224,6 +5224,9 @@ function generateOFP() {
     return;
   }
 
+  // SimBrief “Dispatch Redirect” — custom options (Navigraph developer forum guide)
+  const SIMBRIEF_DISPATCH_CUSTOM = 'https://dispatch.simbrief.com/options/custom';
+
   const params = new URLSearchParams();
   params.set('orig', flightData.origin);
   params.set('dest', flightData.destination);
@@ -5244,13 +5247,16 @@ function generateOFP() {
   const sbCallsign = buildSimbriefCallsignParam(flightData.callsign, flightData.airlineIcao, sbFlt);
   if (sbCallsign) params.set('callsign', sbCallsign);
 
+  const reg = (flightData.registration || '').trim().toUpperCase();
+  if (reg) params.set('reg', reg);
+
   if (isUsAirCarrier(flightData)) params.set('units', 'LBS');
 
   const altn = document.getElementById('altnAirport').value.trim().toUpperCase();
   if (altn) params.set('altn', altn);
 
   const ci = document.getElementById('costIndex').value.trim();
-  if (ci) params.set('ci', ci);
+  if (ci) params.set('civalue', ci);
 
   const fl = document.getElementById('cruiseFL').value.trim();
   if (fl) params.set('fl', fl);
@@ -5258,7 +5264,10 @@ function generateOFP() {
   const pax = document.getElementById('paxCount').value.trim();
   if (pax) params.set('pax', pax);
 
-  const url = `https://www.simbrief.com/system/dispatch.php?${params.toString()}`;
+  // Pilot ID Number (prefs / OFP personalization)
+  if (user) params.set('pid', user);
+
+  const url = `${SIMBRIEF_DISPATCH_CUSTOM}?${params.toString()}`;
 
   showStatus('genStatus', 'success',
     `Opening SimBrief Dispatch... <a href="${url}" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline;">Click here</a> if it doesn't open automatically.`
