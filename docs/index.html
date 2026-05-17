@@ -5173,10 +5173,21 @@ function normalizeSimbriefFltNum(raw, airlineIata, airlineIcao) {
   return n;
 }
 
+/** SimBrief dispatch `airline` must be a two-letter code (SimBrief VA examples); map 3-letter FR24 ICAO via AIRLINES_DB. */
 function simbriefAirlineParam(airlineIata, airlineIcao) {
-  const iata = (airlineIata || '').trim().toUpperCase();
-  if (/^[A-Z]{2}$/.test(iata) || /^[A-Z]{3}$/.test(iata)) return iata;
-  return (airlineIcao || '').trim().toUpperCase();
+  const iRaw = (airlineIata || '').trim().toUpperCase();
+  if (/^[A-Z]{2}$/.test(iRaw)) return iRaw;
+
+  const icao = (airlineIcao || '').trim().toUpperCase();
+  if (icao.length !== 3 || !AIRLINES_DB || !AIRLINES_DB.length) return '';
+
+  const row = AIRLINES_DB.find(function (al) {
+    return al.icao && al.icao.toUpperCase() === icao;
+  });
+  if (!row || !row.iata) return '';
+
+  const fromDb = row.iata.trim().toUpperCase();
+  return /^[A-Z]{2}$/.test(fromDb) ? fromDb : '';
 }
 
 function buildSimbriefCallsignParam(existingCallsign, airlineIcao, numericFltNum) {
