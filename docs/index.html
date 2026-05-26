@@ -5241,6 +5241,24 @@ function buildSimbriefCallsignParam(existingCallsign, airlineIcao, numericFltNum
   return '';
 }
 
+/** SimBrief expects altitude in feet; accept FL style 3-digit input (e.g. 350 -> 35000). */
+function normalizeSimbriefCruiseFL(raw) {
+  const clean = String(raw || '').trim().toUpperCase().replace(/\s+/g, '');
+  if (!clean) return '';
+
+  const noPrefix = clean.startsWith('FL') ? clean.slice(2) : clean;
+  if (!/^\d+$/.test(noPrefix)) return '';
+
+  const normalized = noPrefix.replace(/^0+(?=\d)/, '') || '0';
+  if (normalized.length === 1) return String(parseInt(normalized, 10) * 1000);
+  if (normalized.length === 2 || normalized.length === 3) return String(parseInt(normalized, 10) * 100);
+
+  // 4-5 digit values are already feet (e.g. 18000, 35000) and should pass through.
+  if (normalized.length === 4 || normalized.length === 5) return normalized;
+
+  return normalized;
+}
+
 /** US-flag carriers → SimBrief imperial weights (lbs). ICAO codes used when FR24 omits country. */
 const US_AIRLINE_ICAO = new Set([
   'AAL','UAL','DAL','SWA','ASA','JBU','NKS','FFT','HAL','AAY','SCX','MXY','VXP','JTL','SNY','SIL','BTQ','WWI',
@@ -5311,7 +5329,7 @@ function generateOFP() {
   const ci = document.getElementById('costIndex').value.trim();
   if (ci) params.set('civalue', ci);
 
-  const fl = document.getElementById('cruiseFL').value.trim();
+  const fl = normalizeSimbriefCruiseFL(document.getElementById('cruiseFL').value);
   if (fl) params.set('fl', fl);
 
   const pax = document.getElementById('paxCount').value.trim();
